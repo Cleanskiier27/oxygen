@@ -1,0 +1,76 @@
+// @input Component.Text oxygenText
+// @input Component.RenderMeshVisual worldMesh
+// @input SceneObject breachPrefab
+// @input Component.AudioComponent heartbeatAudio
+// @input SceneObject fadeOverlay
+// @input Component.DeviceTracking deviceTracking
+
+var oxygen = 100;
+var gameActive = true;
+var breaches = [];
+var breachFixTimers = [0, 0, 0];
+var depletionRate = 100 / 180; // 100% over 180 seconds (3 mins)
+
+function onUpdate() {
+    if (!gameActive) return;
+
+    // 1. Oxygen Depletion Logic
+    // Rate increases based on how many breaches are still open
+    var currentDepletion = depletionRate + (breaches.filter(b => b.enabled).length * 0.5);
+    oxygen -= currentDepletion * getDeltaTime();
+    
+    // Update HUD
+    script.oxygenText.text = "OXYGEN: " + Math.floor(oxygen) + "%";
+
+    // 2. Hand Tracking / Sealing Logic
+    checkHandProximity();
+
+    // 3. Fail State
+    if (oxygen <= 0) {
+        gameOver();
+    }
+}
+
+function spawnBreaches() {
+    // CLAD uses the World Mesh to find vertical surfaces (walls)
+    // For this simulation, we pick 3 random points on the mesh
+    for (var i = 0; i < 3; i++) {
+        var breach = script.breachPrefab.instantiate(script.getSceneObject());
+        // Logic to offset breach onto the detected World Mesh
+        var randomPos = new vec3(Math.random()*200 - 100, 0, Math.random()*200 - 100); 
+        breach.getTransform().setWorldPosition(randomPos);
+        breaches.push(breach);
+    }
+}
+
+function checkHandProximity() {
+    // Detect if user's hand is near a breach
+    var handPos = script.deviceTracking.getTransform().getWorldPosition(); // Simplification for Hand Tracking
+    
+    for (var i = 0; i < breaches.length; i++) {
+        if (!breaches[i].enabled) continue;
+        
+        var dist = handPos.distance(breaches[i].getTransform().getWorldPosition());
+        if (dist < 30) { // If hand is within 30cm
+            breachFixTimers[i] += getDeltaTime();
+            if (breachFixTimers[i] >= 5.0) {
+                sealBreach(i);
+            }
+        }
+    }
+}
+
+function sealBreach(index) {
+    breaches[index].enabled = false;
+    // Trigger "Success" sound or VFX change here
+}
+
+function gameOver() {
+    gameActive = false;
+    script.oxygenText.text = "CRITICAL FAILURE";
+    script.fadeOverlay.enabled = true; // Darken the screen
+    script.heartbeatAudio.play(-1); // Loop heartbeat
+}
+
+script.createEvent("UpdateEvent").bind(onUpdate);
+script.createEvent("OnStartEvent").bind(spawnBreaches);
