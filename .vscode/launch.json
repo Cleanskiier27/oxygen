@@ -1,0 +1,53 @@
+{
+  "version": "0.2.0",
+  "configurations": [
+    {
+      "name": "Connect to server",
+      "type": "go",
+      "request": "attach",
+      "mode": "remote",
+      "remotePath": "${workspaceFolder}",
+      "port": 2345,
+      "host": "127.0.0.1"
+    },
+    {
+      "name": "Run: project-name",
+      "type": "debugpy",
+      "request": "launch",
+      "module": "src.index",
+      "justMyCode": true,
+      "env": {
+        "PROJECT_ENV": "development",
+        "LOG_LEVEL": "DEBUG"
+      }
+    },
+    {
+      "name": "Test: Current File",
+      "type": "debugpy",
+      "request": "launch",
+      "module": "pytest",
+      "args": [
+        "${file}",
+        "-v",
+        "--no-header"
+      ],
+      "justMyCode": false,
+      "console": "integratedTerminal"
+    },
+    {
+      "name": "Test: Full Suite",
+      "type": "debugpy",
+      "request": "launch",
+      "module": "pytest",
+      "args": [
+        "tests/",
+        "-v",
+        "--no-header",
+        "--cov=src",
+        "--cov-report=term-missing"
+      ],
+      "justMyCode": false,
+      "console": "integratedTerminal"
+    }
+  ]
+}
